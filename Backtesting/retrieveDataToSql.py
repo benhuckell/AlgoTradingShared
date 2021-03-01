@@ -7,7 +7,11 @@ import pyodbc
 import matplotlib.pyplot as plt
 
 CONNECTION_STRING = r'DRIVER={SQL Server};SERVER=localhost\SQLEXPRESS01;DATABASE=Financials;Trusted_Connection=yes;'
+
+### NOTE: This will not work unless you have this csv downloaded/with the correct path. This is the CRSP dataset (its huge)
 FILE_PATH = 'D:/TEMP2.csv'
+
+
 SYMS_TO_INCLUDE = ['permno','cnum','gvkey','cik','tic','fyear','revt','dvt','ebitda','cshpri','epspx','prcc_f']
 NUM_ROWS = 2325000
 

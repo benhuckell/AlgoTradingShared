@@ -25,6 +25,7 @@ A dictionary class of order objects. Retriveable by timestamp. Currently only ha
 class Orders:
     def __init__(self):
         self.orderDict = {}
+        self.tickerSet = set()
         self.orderSize = 0
 
     def __len__(self):
@@ -37,12 +38,16 @@ class Orders:
             self.orderDict[order.date] = [order]
 
         self.orderSize += 1
+        self.tickerSet.add(order.ticker)
 
     def getOrders(self,date):
         try:
             return self.orderDict[date]
         except:
             return None
+
+    def getAllTickers(self):
+        return self.tickerSet
 
     def printOrderBook(self):
         print(self.orderDict)
@@ -98,6 +103,9 @@ class Portfolio:
 
         return
 
+    def getCurrentHoldings(self):
+        return {k: v for k, v in self.holdings.items() if v!=0}
+
 '''
 Class used for the purposes of loading and saving tick data for the tickers specified
 '''
@@ -106,7 +114,7 @@ class TickData:
     def getPivotTable(startDate, endDate):
         # Tickers list
         # We can add and delete any ticker from the list to get desired ticker live data
-        tickers = ['ATWT','BRLL','HRAL','STEV','CGUD','GCLT','PTAH','TXTM','PVDG']
+        tickers = ['ATWT','BRLL','HRAL','STEV','CGUD','GCLT','PTAH','TXTM','PVDG','CBDY']
         today = date.today()
 
         createNewPivot = False
@@ -149,7 +157,7 @@ class Backtest:
         self.endDate = endDate
 
         #Sim vars
-        self.valueDf = pd.DataFrame(columns =["totalVal"])
+        self.valueDf = pd.DataFrame(columns =["Total Value","Daily Return"])
         self.portfolio = Portfolio(startingCash)
         self.pivotTable = TickData.getPivotTable(self.startDate, self.endDate)
 
@@ -157,6 +165,7 @@ class Backtest:
         self.finalValue = None
         self.totalReturn = None
         self.annualizedReturn = None
+        self.sharpeRatio = None
 
     def plotIndividualStock(self, ticker):
         buyDate = self.startDate
@@ -191,22 +200,31 @@ class Backtest:
 
                     if((order.shares is None or order.shares == 0) and order.value == 0):
                         if(order.action == "buy"):
-                            order.value = self.portfolio.cash
+                            #print(len(orders.getAllTickers())-len(self.portfolio.getCurrentHoldings()))
+                            order.value = (self.portfolio.cash)/(len(orders.getAllTickers())-len(self.portfolio.getCurrentHoldings()))
+                            self.portfolio.executeActionDollars(order,cost)
                         elif(order.action == "sell"):
-                            order.value = self.portfolio.holdings[order.ticker]*cost
-                        self.portfolio.executeActionDollars(order,cost)
+                            order.shares = self.portfolio.holdings[order.ticker]
+                            self.portfolio.executeActionShares(order,cost)
+                        
                     elif(order.shares is None or order.shares == 0):
                         self.portfolio.executeActionDollars(order,cost)
                     else:
                         self.portfolio.executeActionShares(order,cost)
 
                     #print(date, self.portfolio.holdings)
-                
+            #print(self.portfolio.holdings)
 
-            self.valueDf.loc[date] = valueToDate
+            self.valueDf.loc[date,"Total Value"] = valueToDate
 
-        self.finalValue = self.valueDf.loc[date]['totalVal']
+        self.finalValue = self.valueDf['Total Value'].values[-1]
         self.totalReturn = ((self.finalValue/startingCash)-1)*100
+
+        self.valueDf["Daily Return"] = self.valueDf["Total Value"].pct_change(1)
+
+        tradingDaysInYear = 252
+        self.sharpeRatio = (252**0.5)*(self.valueDf["Daily Return"].mean()/self.valueDf["Daily Return"].std())
+        
 
         yearsElapsed = (dateList[-1] - dateList[0]).days/365
 
@@ -225,6 +243,7 @@ class Backtest:
         print("Final Value: $",round(self.finalValue,2))
         print("Total Return:",round(self.totalReturn,2),"%")
         print("Annualized Return:",round(self.annualizedReturn,2),"%")
+        print("Sharpe Ratio:",round(self.sharpeRatio,2))
         print("Holdings:",self.portfolio.holdings)
         print("\n")
 
@@ -241,6 +260,6 @@ class Backtest:
 
     def plotPortfolioValue(self):
         plotPort = plt.figure(2)
-        plt.plot(self.valueDf)
+        plt.plot(self.valueDf["Total Value"])
         plt.show()
         return

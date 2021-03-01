@@ -77,7 +77,7 @@ class BuyHold:
         orders = Orders()
 
         for ticker in self.tickers:
-            order = Order(self.startDate, ticker, 'buy', 0, startingCash)
+            order = Order(self.startDate, ticker, 'buy', 0, 100)
             orders.add(order)
 
         backtestInstance = Backtest(self.startDate, self.endDate, startingCash)
@@ -278,7 +278,7 @@ class MARebound:
                 #If price goes < [lowerPercentage] above MA, from a point > [upperPercentage] above MA, buy
                 if(hitUpperPercentage and row[(ticker,"% over MA")] < self.lowerPercentage):
                     buyList.append(date.date())
-                    orders.add(Order(date.date(), ticker, 'buy', 0, 100))
+                    orders.add(Order(date.date(), ticker, 'buy', 0, 0))
                     firstActionBuy = False
                     hitUpperPercentage = False
 
@@ -293,11 +293,11 @@ class MARebound:
             
         return orders
 
+
     def plotOrderDates(self, ticker):
         plt.plot(self.maTable[(ticker,"Price")])
 
         #Plot execution dates
-
         for xc in self.buyOrderDict[ticker]:
             plt.axvline(x=xc, color='r', linestyle='--')
 
@@ -336,12 +336,13 @@ if __name__ == '__main__':
     #macross.backtest()
     
 
-    maRebound = MARebound(['STEV'], 8, 5, 50, date(2018,1,5), date(2021,2,13))
-    #maRebound.plotOrderDates('STEV')
-    maRebound.backtest(100,plotReturn=True)
+    maRebound = MARebound(['STEV','ATWT','TXTM','CBDY'], 8, 5, 30, date(2018,1,5), date(2021,2,13))
+    #maRebound.plotOrderDates('ATWT')
+    maRebound.backtest(400,plotReturn=True)
 
-    #buyHold = BuyHold(['STEV','ATWT'], date(2018,1,5), date(2021,2,13))
-    #buyHold.backtest(200, plotReturn = False)
+    #buyHold = BuyHold(['STEV','ATWT','TXTM'], date(2018,1,5), date(2021,2,13))
+    #buyHold.plotOrderDates('STEV')
+    #buyHold.backtest(300, plotReturn=True)
 
 
         
